@@ -1,1 +1,1070 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบออกเอกสาร - พรชัยเจริญการผ้าใบ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Sukhumvit Set"', 'SukhumvitSet', 'Prompt', 'Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: "Sukhumvit Set", "SukhumvitSet", "Prompt", "Sarabun", sans-serif;
+        }
+        
+        @media print {
+            .no-print { display: none !important; }
+            html, body {
+                height: 100%;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+            }
+            .print-area {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding-top: 5mm !important;
+                padding-left: 8mm !important;
+                padding-right: 8mm !important;
+                padding-bottom: 5mm !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+            tr, table, div {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
 
+        [contenteditable="true"]:hover {
+            outline: 1px dashed #6366f1;
+            background-color: #f0fdf4;
+            cursor: text;
+        }
+        [contenteditable="true"]:focus {
+            outline: 2px solid #4f46e5;
+            background-color: #ffffff;
+            color: #0f172a !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased min-h-screen py-2 sm:py-6 px-2 sm:px-4">
+
+    <!-- Control Header (No Print) -->
+    <div class="max-w-4xl mx-auto mb-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden no-print">
+        
+        <!-- Main Top Bar -->
+        <div class="bg-slate-900 text-white p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+                <h1 class="font-bold text-base sm:text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice text-indigo-400"></i>
+                    ระบบจัดการเอกสาร & ออเดอร์ - พรชัยเจริญการผ้าใบ
+                </h1>
+                <p class="text-xs text-slate-300 font-medium mt-0.5">จัดการใบเสนอราคา ใบส่งสินค้า และใบเสร็จ แยกตามออเดอร์ลูกค้า</p>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="saveCurrentDocument()" class="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm">
+                    <i class="fa-solid fa-floppy-disk"></i> บันทึกเอกสารนี้
+                </button>
+                <button onclick="window.print()" class="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm">
+                    <i class="fa-solid fa-print"></i> พิมพ์ / PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-200 bg-slate-50 text-xs sm:text-sm font-semibold">
+            <button id="tabBtn1" onclick="switchTab('create')" class="flex-1 py-3 px-4 text-center border-b-2 border-indigo-600 text-indigo-600 bg-white flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-pen-to-square"></i> หน้าสร้าง/แก้ไขเอกสาร
+            </button>
+            <button id="tabBtn2" onclick="switchTab('customers')" class="flex-1 py-3 px-4 text-center border-b-2 border-transparent text-slate-600 hover:text-indigo-600 flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-users text-indigo-500"></i> ประวัติลูกค้า & รายการออเดอร์
+            </button>
+        </div>
+    </div>
+
+    <!-- TAB 1: CREATE / EDIT DOCUMENT PANEL -->
+    <div id="tabCreate" class="max-w-4xl mx-auto mb-6 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden no-print p-4 sm:p-6 space-y-6">
+
+        <!-- Tracking Order ID Indicator -->
+        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 flex justify-between items-center text-xs text-indigo-900">
+            <div>
+                <span class="font-bold">รหัสออเดอร์ปัจจุบัน:</span> 
+                <span id="currentOrderIdText" class="font-mono bg-white px-2 py-0.5 rounded border border-indigo-200 font-bold text-indigo-700">ออเดอร์ใหม่ (สร้างอัตโนมัติเมื่อบันทึก)</span>
+            </div>
+            <button onclick="startNewOrderManual()" class="text-xs bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 font-semibold px-2.5 py-1 rounded transition">
+                <i class="fa-solid fa-plus text-emerald-600"></i> เริ่มออเดอร์ใหม่ทั้งหมด
+            </button>
+        </div>
+
+        <!-- STEP 1: Document & Business Settings -->
+        <div>
+            <div class="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
+                <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center">1</span>
+                <h2 class="text-sm font-bold text-slate-800">ตั้งค่าเอกสาร & ร้านค้า</h2>
+            </div>
+            
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 mb-3 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-image text-indigo-600"></i> เลือกการแสดงโลโก้</label>
+                        <select id="logoOption" onchange="changeLogoOption()" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                            <option value="none">ไม่ใส่โลโก้ (แสดงเฉพาะชื่อร้าน)</option>
+                            <option value="logo1">ใช้โลโก้ 1</option>
+                            <option value="logo2">ใช้โลโก้ 2</option>
+                        </select>
+                    </div>
+                    <div id="uploadLogo1Box" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">อัปโหลด/เปลี่ยน (โลโก้ 1)</label>
+                        <input type="file" accept="image/*" onchange="handleLogoSave(event, 'logo1')" class="w-full text-xs text-slate-600 font-medium file:mr-2 file:py-1.5 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    </div>
+                    <div id="uploadLogo2Box" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">อัปโหลด/เปลี่ยน (โลโก้ 2)</label>
+                        <input type="file" accept="image/*" onchange="handleLogoSave(event, 'logo2')" class="w-full text-xs text-slate-600 font-medium file:mr-2 file:py-1.5 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-building text-slate-400"></i> รูปแบบองค์กร</label>
+                    <select id="companyTypeSelect" onchange="updateCompanyType()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                        <option value="ห้างหุ้นส่วนจำกัด พรชัยเจริญการผ้าใบ|PORNCHAICHAROEN KARNPHABAI LIMITED PARTNERSHIP">ห้างหุ้นส่วนจำกัด พรชัยเจริญการผ้าใบ</option>
+                        <option value="บริษัท พรชัยเจริญการผ้าใบ จำกัด|PORNCHAICHAROEN KARNPHABAI CO., LTD.">บริษัท พรชัยเจริญการผ้าใบ จำกัด</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-file-lines text-slate-400"></i> ประเภทเอกสาร</label>
+                    <select id="docType" onchange="updateDocType()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                        <option value="ใบเสนอราคา / QUOTATION">ใบเสนอราคา (Quotation)</option>
+                        <option value="ใบส่งสินค้า / DELIVERY ORDER">ใบส่งสินค้า (Delivery Order)</option>
+                        <option value="ใบเสร็จรับเงิน / ใบกำกับภาษี">ใบเสร็จรับเงิน / ใบกำกับภาษี</option>
+                        <option value="ใบแจ้งหนี้ / INVOICE">ใบแจ้งหนี้ (Invoice)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-calendar-day text-slate-400"></i> วันที่เอกสาร</label>
+                    <input type="date" id="docDate" onchange="updateDateText(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-eye text-slate-400"></i> การแสดงเลขที่</label>
+                    <select id="showNoOption" onchange="toggleNumberDisplay()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                        <option value="show">แสดง เล่มที่ และ เลขที่</option>
+                        <option value="hide">ซ่อนทั้งหมด</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">เล่มที่ (Book No.)</label>
+                    <input type="text" id="bookNo" value="001" oninput="updateNumberText()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">เลขที่ (No.)</label>
+                    <input type="text" id="docNo" value="0001" oninput="updateNumberText()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-signature text-slate-400"></i> แนบลายเซ็นผู้จัดการ</label>
+                    <input type="file" id="signatureUpload" accept="image/*" onchange="handleSignatureUpload(event)" class="w-full text-xs text-slate-600 font-medium file:mr-2 file:py-1.5 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Customer Information -->
+        <div>
+            <div class="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
+                <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center">2</span>
+                <h2 class="text-sm font-bold text-slate-800">ข้อมูลลูกค้า</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-user text-slate-400"></i> ชื่อลูกค้า / บริษัทลูกค้า</label>
+                    <input type="text" id="custNameInput" placeholder="ระบุชื่อลูกค้า..." oninput="updateCustomerInfo('custNameText', this.value, '')" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-id-card text-slate-400"></i> เลขประจำตัวผู้เสียภาษี (ถ้ามี)</label>
+                    <input type="text" id="custTaxInput" placeholder="ระบุเลขผู้เสียภาษี..." oninput="updateCustomerInfo('custTaxText', this.value, 'เลขผู้เสียภาษี')" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-location-dot text-slate-400"></i> ที่อยู่ลูกค้า</label>
+                    <input type="text" id="custAddrInput" placeholder="ระบุที่อยู่ลูกค้า..." oninput="updateCustomerInfo('custAddrText', this.value, 'ที่อยู่')" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-phone text-slate-400"></i> เบอร์โทรศัพท์ลูกค้า</label>
+                    <input type="text" id="custPhoneInput" placeholder="ระบุเบอร์โทรศัพท์..." oninput="updateCustomerInfo('custPhoneText', this.value, 'เบอร์โทร')" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Items & Remarks -->
+        <div>
+            <div class="flex items-center justify-between mb-3 pb-1 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center">3</span>
+                    <h2 class="text-sm font-bold text-slate-800" id="formActionTitle">รายการสินค้า / บริการ</h2>
+                </div>
+                <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="hidden text-xs text-red-500 hover:underline font-semibold">ยกเลิกการแก้ไข</button>
+            </div>
+
+            <form id="addItemForm" class="grid grid-cols-12 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="editIndex" value="-1">
+                
+                <div class="col-span-12 sm:col-span-5">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">รายละเอียดสินค้า / รายการ (กด Enter ขึ้นบรรทัดใหม่ได้อิสระ)</label>
+                    <textarea id="itemName" rows="2" required placeholder="เช่น เต็นท์ขนาด 6x6 เมตร&#10;- ผ้าใบ PVC กันน้ำ&#10;- พร้อมโครงเหล็กอบสี" class="w-full bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-500 resize-y"></textarea>
+                </div>
+                
+                <div class="col-span-4 sm:col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">จำนวน</label>
+                    <input type="number" id="itemQty" min="1" value="1" required placeholder="จำนวน" class="w-full bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="col-span-8 sm:col-span-3">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">ราคา/หน่วย (บาท)</label>
+                    <input type="number" id="itemPrice" step="0.01" min="0" required placeholder="0.00" class="w-full bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="col-span-12 sm:col-span-2 flex items-end">
+                    <button type="submit" id="submitItemBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-md text-sm transition shadow-sm">
+                        + เพิ่มรายการ
+                    </button>
+                </div>
+            </form>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-comment-dots text-slate-400"></i> หมายเหตุท้ายตาราง (Remarks)</label>
+                    <input type="text" id="remarkInput" placeholder="เช่น มัดจำ 50%, ราคารวมค่าติดตั้งแล้ว..." oninput="updateRemarkText(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1"><i class="fa-solid fa-pen text-slate-400"></i> แก้ไขคำอ่านจำนวนเงินตัวหนังสือ (กำหนดเองได้)</label>
+                    <input type="text" id="manualBahtInput" oninput="updateManualBahtText(this.value)" placeholder="คำนวณให้อัตโนมัติ..." class="w-full bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 font-semibold">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: CUSTOMERS & ORDERS PANEL -->
+    <div id="tabCustomers" class="max-w-4xl mx-auto mb-6 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden no-print p-4 sm:p-6 hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-slate-200">
+            <div>
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-address-book text-indigo-600"></i> ฐานข้อมูลลูกค้า & รายการออเดอร์
+                </h2>
+                <p class="text-xs text-slate-500">ติดตามเอกสารในแต่ละออเดอร์ของลูกค้าได้อย่างชัดเจน</p>
+            </div>
+            <!-- Search Box -->
+            <div class="relative w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                <input type="text" id="searchInput" oninput="renderCustomerDatabase()" placeholder="ค้นหาชื่อ หรือ เบอร์โทร..." class="w-full pl-9 pr-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <!-- Dynamic Customer & Orders List -->
+        <div id="customerListContainer" class="space-y-6">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+
+    <!-- Document Print Preview Area -->
+    <div class="max-w-4xl mx-auto bg-white pt-2 sm:pt-4 p-4 sm:p-8 rounded-lg shadow-md border border-slate-200 print-area text-slate-800">
+        
+        <!-- Header Section -->
+        <div class="flex flex-row justify-between items-start border-b-2 border-slate-800 pb-2 mb-3 gap-2">
+            <div class="flex flex-row items-center gap-2 sm:gap-3 flex-1 min-w-0 pr-2">
+                <div id="logoBox" class="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center flex-shrink-0 hidden">
+                    <img id="companyLogo" src="logo.png" alt="Logo" class="max-w-full max-h-full object-contain">
+                </div>
+
+                <div class="flex-1 min-w-0 overflow-hidden">
+                    <h2 class="font-bold text-base sm:text-2xl text-slate-900 leading-tight whitespace-nowrap" id="displayCompanyName">ห้างหุ้นส่วนจำกัด พรชัยเจริญการผ้าใบ</h2>
+                    <p class="text-[9px] sm:text-[12px] font-bold text-slate-700 leading-tight mt-0.5 whitespace-nowrap tracking-tight" id="displayCompanyEn">PORNCHAICHAROEN KARNPHABAI LIMITED PARTNERSHIP</p>
+                    <p class="text-[9px] sm:text-xs text-slate-700 font-medium mt-0.5 leading-snug whitespace-nowrap">49/1 หมู่1 ถ.ราชสีมา-โชคชัย ต.หัวทะเล อ.เมือง จ.นครราชสีมา 30000</p>
+                    <p class="text-[9px] sm:text-xs text-slate-700 font-medium mt-0.5 whitespace-nowrap">โทร. 081-9550818 , 044-264273 | Email : aj.an@hotmail.com</p>
+                    <p class="text-[9px] sm:text-xs text-slate-700 font-medium mt-0.5 whitespace-nowrap">หมายเลขผู้เสียภาษี 0303562002367</p>
+                </div>
+            </div>
+
+            <div class="text-right flex-shrink-0 flex flex-col justify-between">
+                <div class="h-[20px] sm:h-[28px]"></div>
+                <h1 id="docTitleDisplay" class="text-xs sm:text-base font-black text-slate-900 uppercase leading-tight tracking-wide whitespace-nowrap">ใบเสนอราคา / QUOTATION</h1>
+                <p id="bookNoRow" class="text-[9px] sm:text-xs text-slate-800 font-medium whitespace-nowrap mt-0.5 leading-snug">
+                    <strong class="font-bold">เล่มที่ / Book No.:</strong> <span id="bookNoText" class="font-semibold">001</span>
+                </p>
+                <p id="docNoRow" class="text-[9px] sm:text-xs text-slate-800 font-medium whitespace-nowrap mt-0.5">
+                    <strong class="font-bold">เลขที่ / No.:</strong> <span id="docNoText" class="font-semibold">0001</span>
+                </p>
+                <p id="docDateRow" class="text-[9px] sm:text-xs text-slate-800 font-medium whitespace-nowrap mt-0.5">
+                    <strong class="font-bold">วันที่ / Date:</strong> <span id="docDateText" class="font-semibold">-</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Customer Info Box -->
+        <div class="mb-3 border border-slate-300 rounded-lg overflow-hidden">
+            <div class="bg-slate-800 text-white font-bold px-3 py-1 flex items-center gap-2 text-xs sm:text-sm">
+                <span>ข้อมูลลูกค้า / Customer Information</span>
+            </div>
+            <div class="p-2.5 bg-slate-50/50 space-y-0.5 text-xs sm:text-sm">
+                <p class="font-bold text-slate-900 text-xs sm:text-base" id="custNameText">-</p>
+                <p class="text-slate-800 font-medium break-words leading-relaxed text-xs sm:text-sm" id="custAddrText">ที่อยู่: -</p>
+                <p class="text-slate-800 font-medium text-xs sm:text-sm" id="custPhoneText">เบอร์โทร: -</p>
+                <p class="text-slate-800 font-medium text-xs sm:text-sm" id="custTaxText">เลขผู้เสียภาษี: -</p>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="w-full border border-slate-300 rounded-lg overflow-hidden mb-3">
+            <table class="w-full text-left border-collapse table-fixed">
+                <thead>
+                    <tr class="bg-slate-800 text-white font-bold text-xs sm:text-sm">
+                        <th class="py-2 px-1 text-center w-[6%] border-r border-slate-700">ลำดับ<br><span class="text-[8px] font-medium text-slate-300">Item</span></th>
+                        <th class="py-2 px-2.5 border-r border-slate-700 w-[45%]">รายการสินค้า<br><span class="text-[8px] font-medium text-slate-300">Description</span></th>
+                        <th class="py-2 px-1 text-center border-r border-slate-700 w-[9%]">จำนวน<br><span class="text-[8px] font-medium text-slate-300">Qty</span></th>
+                        <th class="py-2 px-2 text-right border-r border-slate-700 w-[20%]">ราคา/หน่วย<br><span class="text-[8px] font-medium text-slate-300">Unit Price</span></th>
+                        <th class="py-2 px-2 text-right w-[20%]">จำนวนเงิน<br><span class="text-[8px] font-medium text-slate-300">Amount</span></th>
+                        <th class="py-2 px-1 text-center w-[40px] no-print">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTableBody" class="divide-y divide-slate-200">
+                </tbody>
+                <tfoot class="border-t-2 border-slate-800 bg-slate-50/50 text-xs sm:text-sm">
+                    <tr class="border-b border-slate-200">
+                        <td colspan="3" rowspan="2" class="p-2.5 align-top border-r border-slate-200">
+                            <div>
+                                <p class="font-bold text-slate-800 mb-0.5 text-xs">หมายเหตุ / Remarks:</p>
+                                <p id="displayRemarkText" class="text-slate-600 whitespace-pre-wrap font-medium italic leading-relaxed text-xs">-</p>
+                            </div>
+                        </td>
+                        <td class="py-1.5 px-2 text-right font-semibold text-slate-800 border-r border-slate-200 whitespace-nowrap text-xs sm:text-sm leading-tight">
+                            <div>รวมเป็นเงิน</div>
+                            <div class="text-[9px] text-slate-500 font-normal">(Subtotal)</div>
+                        </td>
+                        <td class="py-1.5 px-2 text-right font-bold text-slate-900 text-xs sm:text-sm">
+                            <div class="inline-flex flex-wrap justify-end items-baseline gap-x-1 text-right w-full">
+                                <span id="subtotalText" contenteditable="true" class="px-1 py-0.5 rounded hover:bg-emerald-50 transition">0.00</span>
+                                <span class="text-xs font-semibold text-slate-700">บาท</span>
+                            </div>
+                        </td>
+                        <td class="no-print"></td>
+                    </tr>
+                    <tr class="border-b border-slate-200">
+                        <td class="py-1.5 px-2 text-right font-semibold text-slate-800 border-r border-slate-200 whitespace-nowrap text-xs sm:text-sm leading-tight">
+                            <div>ภาษีมูลค่าเพิ่ม</div>
+                            <div class="text-[9px] text-slate-500 font-normal">(VAT 7%)</div>
+                        </td>
+                        <td class="py-1.5 px-2 text-right font-bold text-slate-900 text-xs sm:text-sm">
+                            <div class="inline-flex flex-wrap justify-end items-baseline gap-x-1 text-right w-full">
+                                <span id="vatText" contenteditable="true" class="px-1 py-0.5 rounded hover:bg-emerald-50 transition">0.00</span>
+                                <span class="text-xs font-semibold text-slate-700">บาท</span>
+                            </div>
+                        </td>
+                        <td class="no-print"></td>
+                    </tr>
+                    <tr class="bg-slate-800 text-white font-bold border-t border-slate-800">
+                        <td colspan="3" class="py-2 px-2 text-center border-r border-slate-700 text-xs sm:text-sm">
+                            <span id="thaiTextAmount" contenteditable="true" class="px-2 py-0.5 rounded transition hover:bg-slate-700 focus:outline-none font-bold text-white">
+                                (ศูนย์บาทถ้วน)
+                            </span>
+                        </td>
+                        <td class="py-1.5 px-2 text-right border-r border-slate-700 text-xs sm:text-sm font-bold leading-tight">
+                            <div>รวมเป็นเงินทั้งสิ้น</div>
+                            <div class="text-[9px] text-slate-300 font-normal" id="totalEnLabel">(Total Amount)</div>
+                        </td>
+                        <td class="py-2 px-2 text-right text-white text-sm sm:text-base font-extrabold align-middle">
+                            <div class="flex flex-col items-end justify-center h-full">
+                                <div class="flex items-baseline gap-x-1">
+                                    <span id="grandTotalText" contenteditable="true" class="px-1 py-0.5 rounded hover:bg-slate-700 transition">0.00</span>
+                                    <span class="text-xs font-normal text-slate-200">บาท</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="no-print"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Signature Footer -->
+        <div id="signatureFooter" class="flex justify-end items-end gap-6 pt-2 border-t border-slate-200 text-xs sm:text-sm text-center mt-2" style="page-break-inside: avoid; break-inside: avoid;">
+            <div id="customerSignBox" class="w-1/2 hidden">
+                <div class="h-12 sm:h-14 border-b border-dashed border-slate-400 mb-1 flex items-end justify-center pb-1"></div>
+                <p class="font-bold text-slate-900 text-xs sm:text-sm">ผู้รับสินค้า / Receiver</p>
+                <p class="text-slate-600 font-medium text-[11px] mt-0.5">วันที่ / Date ...... / ...... / ......</p>
+            </div>
+
+            <div id="shopSignBox" class="w-1/2 sm:w-5/12">
+                <div class="h-12 sm:h-14 border-b border-dashed border-slate-400 mb-1 flex items-end justify-center pb-1 relative">
+                    <img id="managerSignatureImg" src="" alt="ลายเซ็น" class="hidden max-h-12 object-contain absolute bottom-0.5">
+                </div>
+                <p class="font-bold text-slate-900 text-xs sm:text-sm">นาย ธนพัต แสงทอง</p>
+                <p class="font-semibold text-slate-700 text-[11px] sm:text-xs mt-0.5" id="managerTitleLabel">ผู้จัดการ / ห้างหุ้นส่วนจำกัด พรชัยเจริญการผ้าใบ</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let items = [];
+        let activeOrderId = null; // Track current active order ID
+        let savedDocuments = JSON.parse(localStorage.getItem('app_saved_documents_v2') || '[]');
+        let isManualBahtEditing = false;
+
+        document.getElementById('docDate').valueAsDate = new Date();
+        updateDateText(document.getElementById('docDate').value);
+
+        function switchTab(tab) {
+            const tab1 = document.getElementById('tabCreate');
+            const tab2 = document.getElementById('tabCustomers');
+            const btn1 = document.getElementById('tabBtn1');
+            const btn2 = document.getElementById('tabBtn2');
+
+            if (tab === 'create') {
+                tab1.classList.remove('hidden');
+                tab2.classList.add('hidden');
+                btn1.className = "flex-1 py-3 px-4 text-center border-b-2 border-indigo-600 text-indigo-600 bg-white flex items-center justify-center gap-2 transition";
+                btn2.className = "flex-1 py-3 px-4 text-center border-b-2 border-transparent text-slate-600 hover:text-indigo-600 flex items-center justify-center gap-2 transition";
+            } else {
+                tab1.classList.add('hidden');
+                tab2.classList.remove('hidden');
+                btn2.className = "flex-1 py-3 px-4 text-center border-b-2 border-indigo-600 text-indigo-600 bg-white flex items-center justify-center gap-2 transition";
+                btn1.className = "flex-1 py-3 px-4 text-center border-b-2 border-transparent text-slate-600 hover:text-indigo-600 flex items-center justify-center gap-2 transition";
+                renderCustomerDatabase();
+            }
+        }
+
+        function startNewOrderManual() {
+            activeOrderId = null;
+            document.getElementById('currentOrderIdText').innerText = "ออเดอร์ใหม่ (สร้างอัตโนมัติเมื่อบันทึก)";
+            items = [];
+            document.getElementById('custNameInput').value = '';
+            document.getElementById('custPhoneInput').value = '';
+            document.getElementById('custAddrInput').value = '';
+            document.getElementById('custTaxInput').value = '';
+            document.getElementById('remarkInput').value = '';
+
+            updateCustomerInfo('custNameText', '', '');
+            updateCustomerInfo('custTaxText', '', 'เลขผู้เสียภาษี');
+            updateCustomerInfo('custAddrText', '', 'ที่อยู่');
+            updateCustomerInfo('custPhoneText', '', 'เบอร์โทร');
+            updateRemarkText('');
+            renderItems();
+        }
+
+        // Save Current Document into Local Database (Grouped under activeOrderId)
+        function saveCurrentDocument() {
+            const custName = document.getElementById('custNameInput').value.trim();
+            if (!custName) {
+                alert('กรุณากรอกชื่อลูกค้าก่อนบันทึกเอกสารครับ');
+                return;
+            }
+
+            if (!activeOrderId) {
+                activeOrderId = 'ORD-' + Date.now();
+            }
+
+            document.getElementById('currentOrderIdText').innerText = activeOrderId;
+
+            const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            const vat = subtotal * 0.07;
+            const grandTotal = subtotal + vat;
+
+            const docData = {
+                id: 'doc_' + Date.now(),
+                orderId: activeOrderId,
+                docType: document.getElementById('docType').value,
+                bookNo: document.getElementById('bookNo').value,
+                docNo: document.getElementById('docNo').value,
+                docDate: document.getElementById('docDate').value,
+                companyType: document.getElementById('companyTypeSelect').value,
+                custName: custName,
+                custTax: document.getElementById('custTaxInput').value.trim(),
+                custAddr: document.getElementById('custAddrInput').value.trim(),
+                custPhone: document.getElementById('custPhoneInput').value.trim(),
+                remark: document.getElementById('remarkInput').value.trim(),
+                items: JSON.parse(JSON.stringify(items)),
+                grandTotal: grandTotal,
+                createdAt: new Date().toISOString()
+            };
+
+            // Remove previous version of this specific document if replacing
+            savedDocuments = savedDocuments.filter(d => d.id !== docData.id);
+            savedDocuments.unshift(docData);
+            
+            localStorage.setItem('app_saved_documents_v2', JSON.stringify(savedDocuments));
+            alert(`บันทึก [${docData.docType.split('/')[0].trim()}] ลงในออเดอร์ (${activeOrderId}) เรียบร้อยครับ!`);
+        }
+
+        // Render Database Panel (Grouped by Customer & Orders)
+        function renderCustomerDatabase() {
+            const container = document.getElementById('customerListContainer');
+            const searchKeyword = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+            container.innerHTML = '';
+
+            if (savedDocuments.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 text-slate-400">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2"></i>
+                        <p class="text-sm">ยังไม่มีข้อมูลออเดอร์ที่เคยบันทึกไว้ในระบบ</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by Customer -> then by Order ID
+            const customers = {};
+            savedDocuments.forEach(doc => {
+                const custKey = `${doc.custName}_${doc.custPhone || ''}`;
+                if (!customers[custKey]) {
+                    customers[custKey] = {
+                        name: doc.custName,
+                        phone: doc.custPhone,
+                        addr: doc.custAddr,
+                        tax: doc.custTax,
+                        orders: {}
+                    };
+                }
+
+                if (!customers[custKey].orders[doc.orderId]) {
+                    customers[custKey].orders[doc.orderId] = {
+                        orderId: doc.orderId,
+                        docs: [],
+                        items: doc.items, // Order items
+                        grandTotal: doc.grandTotal,
+                        lastDate: doc.docDate
+                    };
+                }
+                customers[custKey].orders[doc.orderId].docs.push(doc);
+            });
+
+            let matchFound = false;
+
+            Object.values(customers).forEach(cust => {
+                const isMatchName = cust.name.toLowerCase().includes(searchKeyword);
+                const isMatchPhone = (cust.phone || '').toLowerCase().includes(searchKeyword);
+
+                if (searchKeyword && !isMatchName && !isMatchPhone) {
+                    return;
+                }
+
+                matchFound = true;
+
+                const custCard = document.createElement('div');
+                custCard.className = "p-5 bg-white rounded-xl border border-slate-300 shadow-sm space-y-4";
+
+                let ordersHtml = Object.values(cust.orders).map((ord, idx) => {
+                    let docBadges = ord.docs.map(d => {
+                        let shortTitle = d.docType.split('/')[0].trim();
+                        let badgeColor = "bg-blue-50 text-blue-700 border-blue-200";
+                        if (shortTitle.includes("ส่งสินค้า")) badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
+                        if (shortTitle.includes("ใบเสร็จ")) badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+
+                        return `
+                            <button onclick="loadSpecificDocument('${d.id}')" class="px-2.5 py-1 rounded text-xs font-bold border ${badgeColor} hover:opacity-80 transition flex items-center gap-1">
+                                <i class="fa-solid fa-file-lines"></i> ${shortTitle} (เลขที่ ${d.docNo})
+                            </button>
+                        `;
+                    }).join('');
+
+                    let itemsSummary = ord.items.map(it => `${it.name} (${it.qty} รายการ)`).join(', ');
+
+                    return `
+                        <div class="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-xs bg-slate-800 text-white px-2 py-0.5 rounded">ออเดอร์ #${idx + 1}</span>
+                                    <span class="text-xs text-slate-500 font-mono">ID: ${ord.orderId}</span>
+                                </div>
+                                <span class="font-bold text-emerald-600 text-sm">ยอดรวม: ${ord.grandTotal.toLocaleString('th-TH', {minimumFractionDigits:2})} บาท</span>
+                            </div>
+
+                            <p class="text-xs text-slate-700 font-medium truncate">
+                                <strong>รายการสินค้า:</strong> ${itemsSummary}
+                            </p>
+
+                            <div class="pt-1">
+                                <p class="text-[11px] font-bold text-slate-500 mb-1">เอกสารที่ออกแล้วในออเดอร์นี้ (กดดู/แก้ไขได้):</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    ${docBadges}
+                                </div>
+                            </div>
+
+                            <!-- Order Action Button -->
+                            <div class="pt-2 flex justify-end border-t border-slate-200/60 mt-2">
+                                <button onclick="addDocToExistingOrder('${ord.orderId}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded transition flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-plus-circle"></i> + ออกเอกสารเพิ่มเติมในออเดอร์นี้ (สินค้าเดิม)
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                custCard.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                <i class="fa-solid fa-user text-indigo-600"></i> ${cust.name}
+                            </h3>
+                            <p class="text-xs text-slate-600 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                                <span><i class="fa-solid fa-phone text-slate-400"></i> ${cust.phone || '-'}</span>
+                                <span><i class="fa-solid fa-location-dot text-slate-400"></i> ${cust.addr || '-'}</span>
+                                <span><i class="fa-solid fa-id-card text-slate-400"></i> ${cust.tax || '-'}</span>
+                            </p>
+                        </div>
+                        
+                        <!-- Customer New Order Button -->
+                        <button onclick="createNewOrderForCustomer('${cust.name.replace(/'/g, "\\'")}', '${(cust.phone || '').replace(/'/g, "\\'")}', '${(cust.addr || '').replace(/'/g, "\\'")}', '${(cust.tax || '').replace(/'/g, "\\'")}')" class="w-full sm:w-auto px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-cart-plus"></i> + เพิ่มออเดอร์ใหม่ ของลูกค้ารายนี้ (พิมพ์สินค้าใหม่)
+                        </button>
+                    </div>
+
+                    <div class="space-y-3 pt-1">
+                        <p class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                            <i class="fa-solid fa-boxes-stacked text-indigo-500"></i> รายการออเดอร์ทั้งหมด (${Object.keys(cust.orders).length} ออเดอร์):
+                        </p>
+                        ${ordersHtml}
+                    </div>
+                `;
+
+                container.appendChild(custCard);
+            });
+
+            if (!matchFound) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-2xl mb-1"></i>
+                        <p class="text-sm">ไม่พบข้อมูลลูกค้าที่ค้นหา "${searchKeyword}"</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Action 1: Add new Document to EXISTING Order (Keeps same Order ID & Same Items)
+        function addDocToExistingOrder(orderId) {
+            const baseDoc = savedDocuments.find(d => d.orderId === orderId);
+            if (!baseDoc) return;
+
+            activeOrderId = orderId;
+            document.getElementById('currentOrderIdText').innerText = activeOrderId;
+
+            // Load customer & item info
+            document.getElementById('custNameInput').value = baseDoc.custName;
+            document.getElementById('custTaxInput').value = baseDoc.custTax || '';
+            document.getElementById('custAddrInput').value = baseDoc.custAddr || '';
+            document.getElementById('custPhoneInput').value = baseDoc.custPhone || '';
+            document.getElementById('remarkInput').value = baseDoc.remark || '';
+
+            items = JSON.parse(JSON.stringify(baseDoc.items)); // Keep same items
+
+            // Auto increment document number
+            let curNo = parseInt(document.getElementById('docNo').value) || 1;
+            document.getElementById('docNo').value = String(curNo + 1).padStart(4, '0');
+            document.getElementById('docDate').valueAsDate = new Date();
+
+            updateDateText(document.getElementById('docDate').value);
+            updateNumberText();
+            updateCustomerInfo('custNameText', baseDoc.custName, '');
+            updateCustomerInfo('custTaxText', baseDoc.custTax || '', 'เลขผู้เสียภาษี');
+            updateCustomerInfo('custAddrText', baseDoc.custAddr || '', 'ที่อยู่');
+            updateCustomerInfo('custPhoneText', baseDoc.custPhone || '', 'เบอร์โทร');
+            updateRemarkText(baseDoc.remark || '');
+
+            renderItems();
+            switchTab('create');
+            alert(`ดึงข้อมูลสินค้าและลูกค้าของออเดอร์ (${orderId}) เรียบร้อยแล้ว! เลือกประเภทเอกสารที่ต้องการ แล้วกด "บันทึกเอกสารนี้" ได้เลยครับ`);
+        }
+
+        // Action 2: Create BRAND NEW Order for EXISTING Customer (Keeps Customer, CLEARS Items)
+        function createNewOrderForCustomer(name, phone, addr, tax) {
+            activeOrderId = 'ORD-' + Date.now(); // Brand new order ID
+            document.getElementById('currentOrderIdText').innerText = activeOrderId;
+
+            items = []; // CLEAR items for new order
+
+            document.getElementById('custNameInput').value = name;
+            document.getElementById('custPhoneInput').value = phone || '';
+            document.getElementById('custAddrInput').value = addr || '';
+            document.getElementById('custTaxInput').value = tax || '';
+            document.getElementById('remarkInput').value = '';
+
+            let curNo = parseInt(document.getElementById('docNo').value) || 1;
+            document.getElementById('docNo').value = String(curNo + 1).padStart(4, '0');
+            document.getElementById('docDate').valueAsDate = new Date();
+
+            updateDateText(document.getElementById('docDate').value);
+            updateNumberText();
+            updateCustomerInfo('custNameText', name, '');
+            updateCustomerInfo('custTaxText', tax || '', 'เลขผู้เสียภาษี');
+            updateCustomerInfo('custAddrText', addr || '', 'ที่อยู่');
+            updateCustomerInfo('custPhoneText', phone || '', 'เบอร์โทร');
+            updateRemarkText('');
+
+            renderItems();
+            switchTab('create');
+            alert(`สร้างออเดอร์ใหม่ให้ลูกค้า "${name}" เรียบร้อยแล้วครับ! สามารถพิมพ์รายการสินค้าออเดอร์ใหม่ได้เลย`);
+        }
+
+        // Load specific document to view/edit
+        function loadSpecificDocument(docId) {
+            const doc = savedDocuments.find(d => d.id === docId);
+            if (!doc) return;
+
+            activeOrderId = doc.orderId;
+            document.getElementById('currentOrderIdText').innerText = activeOrderId;
+
+            document.getElementById('docType').value = doc.docType;
+            document.getElementById('bookNo').value = doc.bookNo;
+            document.getElementById('docNo').value = doc.docNo;
+            document.getElementById('docDate').value = doc.docDate;
+            document.getElementById('companyTypeSelect').value = doc.companyType;
+
+            document.getElementById('custNameInput').value = doc.custName;
+            document.getElementById('custTaxInput').value = doc.custTax || '';
+            document.getElementById('custAddrInput').value = doc.custAddr || '';
+            document.getElementById('custPhoneInput').value = doc.custPhone || '';
+            document.getElementById('remarkInput').value = doc.remark || '';
+
+            items = JSON.parse(JSON.stringify(doc.items));
+
+            updateDocType();
+            updateCompanyType();
+            updateNumberText();
+            updateDateText(doc.docDate);
+            updateCustomerInfo('custNameText', doc.custName, '');
+            updateCustomerInfo('custTaxText', doc.custTax || '', 'เลขผู้เสียภาษี');
+            updateCustomerInfo('custAddrText', doc.custAddr || '', 'ที่อยู่');
+            updateCustomerInfo('custPhoneText', doc.custPhone || '', 'เบอร์โทร');
+            updateRemarkText(doc.remark || '');
+            
+            renderItems();
+            switchTab('create');
+        }
+
+        function changeLogoOption() {
+            const option = document.getElementById('logoOption').value;
+            const logoBox = document.getElementById('logoBox');
+            const logoImg = document.getElementById('companyLogo');
+            const upload1 = document.getElementById('uploadLogo1Box');
+            const upload2 = document.getElementById('uploadLogo2Box');
+
+            upload1.classList.add('hidden');
+            upload2.classList.add('hidden');
+
+            if (option === 'none') {
+                logoBox.classList.add('hidden');
+            } else if (option === 'logo1') {
+                upload1.classList.remove('hidden');
+                const savedLogo1 = localStorage.getItem('app_saved_logo1');
+                if (savedLogo1) {
+                    logoImg.src = savedLogo1;
+                    logoBox.classList.remove('hidden');
+                } else {
+                    logoBox.classList.add('hidden');
+                }
+            } else if (option === 'logo2') {
+                upload2.classList.remove('hidden');
+                const savedLogo2 = localStorage.getItem('app_saved_logo2');
+                if (savedLogo2) {
+                    logoImg.src = savedLogo2;
+                    logoBox.classList.remove('hidden');
+                } else {
+                    logoBox.classList.add('hidden');
+                }
+            }
+        }
+
+        function handleLogoSave(event, logoKey) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    localStorage.setItem(`app_saved_${logoKey}`, base64Image);
+                    document.getElementById('companyLogo').src = base64Image;
+                    document.getElementById('logoBox').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateCompanyType() {
+            const val = document.getElementById('companyTypeSelect').value.split('|');
+            document.getElementById('displayCompanyName').innerText = val[0];
+            document.getElementById('displayCompanyEn').innerText = val[1];
+            document.getElementById('managerTitleLabel').innerText = `ผู้จัดการ / ${val[0]}`;
+        }
+
+        function handleSignatureUpload(event) {
+            const file = event.target.files[0];
+            const signatureImg = document.getElementById('managerSignatureImg');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    signatureImg.src = e.target.result;
+                    signatureImg.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                signatureImg.classList.add('hidden');
+            }
+        }
+
+        function updateCustomerInfo(id, val, prefix) {
+            if (prefix) {
+                document.getElementById(id).innerText = val.trim() ? `${prefix}: ${val.trim()}` : `${prefix}: -`;
+            } else {
+                document.getElementById(id).innerText = val.trim() ? val.trim() : '-';
+            }
+        }
+
+        function updateRemarkText(val) {
+            document.getElementById('displayRemarkText').innerText = val.trim() ? val : '-';
+        }
+
+        function updateNumberText() {
+            document.getElementById('bookNoText').innerText = document.getElementById('bookNo').value || '-';
+            document.getElementById('docNoText').innerText = document.getElementById('docNo').value || '-';
+        }
+
+        function toggleNumberDisplay() {
+            const option = document.getElementById('showNoOption').value;
+            const bookRow = document.getElementById('bookNoRow');
+            const docRow = document.getElementById('docNoRow');
+            if (option === 'hide') {
+                bookRow.classList.add('hidden');
+                docRow.classList.add('hidden');
+            } else {
+                bookRow.classList.remove('hidden');
+                docRow.classList.remove('hidden');
+                updateNumberText();
+            }
+        }
+
+        function updateDateText(val) {
+            if (!val) {
+                document.getElementById('docDateText').innerText = '-';
+                return;
+            }
+            const d = new Date(val);
+            document.getElementById('docDateText').innerText = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function updateDocType() {
+            const val = document.getElementById('docType').value;
+            document.getElementById('docTitleDisplay').innerText = val;
+            const custSignBox = document.getElementById('customerSignBox');
+            if (val.includes('ใบส่งสินค้า')) {
+                custSignBox.classList.remove('hidden');
+            } else {
+                custSignBox.classList.add('hidden');
+            }
+        }
+
+        function bahtText(num) {
+            if (isNaN(num) || num === 0) return "ศูนย์บาทถ้วน";
+            num = num.toFixed(2);
+            let [integer, fraction] = num.split('.');
+
+            const numbers = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+            const digits = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
+
+            function convertGroup(nStr) {
+                let text = "";
+                let len = nStr.length;
+                for (let i = 0; i < len; i++) {
+                    let digit = parseInt(nStr[i]);
+                    let pos = len - i - 1;
+                    if (digit !== 0) {
+                        if (pos === 1 && digit === 1) text += "สิบ";
+                        else if (pos === 1 && digit === 2) text += "ยี่สิบ";
+                        else if (pos === 0 && digit === 1 && len > 1) text += "เอ็ด";
+                        else text += numbers[digit] + digits[pos];
+                    }
+                }
+                return text;
+            }
+
+            let result = "";
+            let intLen = integer.length;
+            if (intLen > 6) {
+                let millionGroup = integer.substring(0, intLen - 6);
+                let restGroup = integer.substring(intLen - 6);
+                result = convertGroup(millionGroup) + "ล้าน" + convertGroup(restGroup);
+            } else {
+                result = convertGroup(integer);
+            }
+
+            result += "บาท";
+            if (fraction === "00" || !fraction) {
+                result += "ถ้วน";
+            } else {
+                result += convertGroup(fraction) + "สตางค์";
+            }
+            return result;
+        }
+
+        function updateManualBahtText(val) {
+            if (val.trim() !== '') {
+                isManualBahtEditing = true;
+                const formatted = val.startsWith('(') ? val : `(${val})`;
+                document.getElementById('thaiTextAmount').innerText = formatted;
+            } else {
+                isManualBahtEditing = false;
+                renderItems();
+            }
+        }
+
+        function renderItems() {
+            const tbody = document.getElementById('itemsTableBody');
+            tbody.innerHTML = '';
+
+            let subtotal = 0;
+
+            if (items.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td colspan="6" class="py-6 text-center text-slate-400 font-medium italic text-sm">
+                        ยังไม่มีรายการสินค้า — กรุณากรอกแบบฟอร์มขั้นตอนที่ 3 ด้านบนเพื่อเพิ่มรายการ
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            } else {
+                items.forEach((item, idx) => {
+                    const total = item.qty * item.price;
+                    subtotal += total;
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50/80";
+                    tr.innerHTML = `
+                        <td class="py-2 px-1 text-center text-slate-600 font-semibold text-xs sm:text-sm border-r border-slate-200">${idx + 1}</td>
+                        <td class="py-2 px-2.5 font-bold text-slate-900 text-xs sm:text-sm break-words border-r border-slate-200 whitespace-pre-line leading-relaxed">${item.name}</td>
+                        <td class="py-2 px-1 text-center text-slate-800 text-xs sm:text-sm font-semibold border-r border-slate-200">${item.qty}</td>
+                        
+                        <td class="py-2 px-2 text-right text-slate-900 text-xs sm:text-sm font-semibold border-r border-slate-200">
+                            <div class="inline-flex flex-wrap justify-end items-baseline gap-x-1 text-right w-full">
+                                <span contenteditable="true" class="px-1 py-0.5 rounded hover:bg-emerald-50 transition">${item.price.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                                <span class="text-xs font-normal text-slate-600">บาท</span>
+                            </div>
+                        </td>
+                        
+                        <td class="py-2 px-2 text-right font-extrabold text-slate-900 text-xs sm:text-sm">
+                            <div class="inline-flex flex-wrap justify-end items-baseline gap-x-1 text-right w-full">
+                                <span contenteditable="true" class="px-1 py-0.5 rounded hover:bg-emerald-50 transition">${total.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                                <span class="text-xs font-semibold text-slate-700">บาท</span>
+                            </div>
+                        </td>
+                        
+                        <td class="py-2 px-1 text-center no-print whitespace-nowrap">
+                            <button onclick="editItem(${idx})" class="text-amber-600 hover:text-amber-800 mr-1.5" title="แก้ไข">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700" title="ลบ">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const vat = subtotal * 0.07;
+            const grandTotal = subtotal + vat;
+
+            document.getElementById('subtotalText').innerText = `${subtotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('vatText').innerText = `${vat.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('grandTotalText').innerText = `${grandTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            
+            if (!isManualBahtEditing) {
+                const autoText = `(${bahtText(grandTotal)})`;
+                document.getElementById('thaiTextAmount').innerText = autoText;
+                document.getElementById('manualBahtInput').value = autoText.replace(/[()]/g, '');
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const editIdx = parseInt(document.getElementById('editIndex').value);
+            const name = document.getElementById('itemName').value;
+            const qty = parseFloat(document.getElementById('itemQty').value);
+            const price = parseFloat(document.getElementById('itemPrice').value);
+
+            if (name && qty > 0 && price >= 0) {
+                if (editIdx >= 0) {
+                    items[editIdx] = { name, qty, price };
+                } else {
+                    items.push({ name, qty, price });
+                }
+                cancelEdit();
+                renderItems();
+            }
+        }
+
+        function editItem(idx) {
+            const item = items[idx];
+            document.getElementById('editIndex').value = idx;
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemQty').value = item.qty;
+            document.getElementById('itemPrice').value = item.price;
+
+            document.getElementById('formActionTitle').innerText = `กำลังแก้ไขรายการที่ ${idx + 1}`;
+            document.getElementById('submitItemBtn').innerText = '💾 บันทึก';
+            document.getElementById('submitItemBtn').className = 'w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-md text-sm transition';
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+        }
+
+        function cancelEdit() {
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemQty').value = '1';
+            document.getElementById('itemPrice').value = '';
+
+            document.getElementById('formActionTitle').innerText = 'รายการสินค้า / บริการ';
+            document.getElementById('submitItemBtn').innerText = '+ เพิ่มรายการ';
+            document.getElementById('submitItemBtn').className = 'w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-md text-sm transition';
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+        }
+
+        function removeItem(idx) {
+            if (parseInt(document.getElementById('editIndex').value) === idx) {
+                cancelEdit();
+            }
+            items.splice(idx, 1);
+            renderItems();
+        }
+
+        document.getElementById('thaiTextAmount').addEventListener('blur', function() {
+            const cleanText = this.innerText.trim().replace(/[()]/g, '');
+            document.getElementById('manualBahtInput').value = cleanText;
+            isManualBahtEditing = cleanText !== '';
+        });
+
+        // Initial setup
+        changeLogoOption();
+        updateDocType();
+        renderItems();
+    </script>
+</body>
+</html>
